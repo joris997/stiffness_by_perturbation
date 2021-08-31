@@ -1,0 +1,1182 @@
+
+//const std::string absPath = "/home/none/Downloads/TUd_2020-2021/Research/master_thesis/2_experiments/motion_capture/matlab_tests/leg_stiffness_cpp/data";
+////const std::string absPath = "/home/joris997/thesis_perturbation/data";
+//const double finalTime = 1.0;
+//const double addedForce = 100.0;
+
+//#include "createFiles.hpp"
+//#include "compute.hpp"
+
+//void createConstantStatesFile(const std::string& initialStatePath,
+//                              const std::string& constantStatesFile){
+//    std::ofstream out(constantStatesFile);
+//    std::ifstream in(initialStatePath);
+
+//    int lineno = 0;
+//    std::string line;
+//    while(std::getline(in,line)){
+//        ++lineno;
+//        if(lineno < 8){
+//            if (lineno == 3){
+//                out << "nRows=100\n";
+//            } else {
+//                out << line << "\n";
+//            }
+//        }
+//        if(lineno == 8){
+//            std::string lineCut = line.substr(13,line.length()-1);
+//            int numLoops = finalTime*100.0;
+//            for(int i=0; i<numLoops+1; i++){
+//                out << "      " << std::to_string((double)i/100) << "\t      " << lineCut;
+//            }
+//            break;
+//        }
+//    }
+//    in.close();
+//    out.close();
+//}
+
+//void performCMC(OpenSim::Model model, std::string GRFPath,std::string initialStatePath, bool left, SimTK::Real time){
+//    SimTK::Vec3 dummyXYZ;
+//    std::string forcePath = absPath + "/CMC/appliedForceGRFOnly.sto";
+//    // Create a sto file that only contains the GRF
+//    createForceFile(dummyXYZ,dummyXYZ,dummyXYZ,
+//                    false,      // if left
+//                    false,      // add perturbation
+//                    forcePath,
+//                    GRFPath,
+//                    time);
+
+//    // Create a sto file that contains the desired state (constant one)
+//    std::string constantStatesFile = absPath + "/CMC/constantStatesFile.sto";
+//    createConstantStatesFile(initialStatePath,constantStatesFile);
+
+//    OpenSim::CMCTool cmcTool;
+//    cmcTool.setModel(model);
+//    cmcTool.setReplaceForceSet(false);
+//    cmcTool.setResultsDir(absPath+"/CMC/results/");
+//    cmcTool.setDesiredKinematicsFileName(constantStatesFile);
+
+//    cmcTool.setInitialTime(0.0);
+//    cmcTool.setFinalTime(1.0);
+//    cmcTool.setTimeWindow(0.01);
+//    if(left){
+//        std::string forceSetPath = absPath + "/CMC/CMC_Actuators_left.xml";
+//        OpenSim::Array<std::string> forceSetArray(forceSetPath,1);
+//        cmcTool.setForceSetFiles(forceSetArray);
+//        cmcTool.setTaskSetFileName(absPath+"/CMC/CMC_Tasks_left.xml");
+
+//        cmcTool.setExternalLoadsFileName(absPath+"/CMC/CMC_Load_left.xml");
+//    } else {
+//        std::string forceSetPath = absPath + "/CMC/CMC_Actuators_right.xml";
+//        OpenSim::Array<std::string> forceSetArray(forceSetPath,1);
+//        cmcTool.setForceSetFiles(forceSetArray);
+//        cmcTool.setTaskSetFileName(absPath+"/CMC/CMC_Tasks_right.xml");
+
+//        cmcTool.setExternalLoadsFileName(absPath+"/CMC/CMC_Load_right.xml");
+//    }
+//    cmcTool.run();
+//}
+//int main(){
+//    std::string modelPath = absPath + "/subject5_final.osim";
+//    std::string modelPathLeft = absPath + "/subject5_final_left.osim";
+//    std::string modelPathRight = absPath + "/subject5_final_right.osim";
+//    std::string forcePath = absPath + "/appliedForce.sto";
+//    std::string GRFPath = absPath + "/GRFs.mot";
+//    std::string statesPath = absPath + "/scaled_states.sto";
+//    std::string controlsPath = absPath + "/scaled_controls.sto";
+
+//    // First let's try to get the number of states in the file. We create a
+//    // model and statetrajectory also in the for-loop
+//    OpenSim::Model modelForN(modelPath);
+//    modelForN.initSystem();
+
+//    OpenSim::Storage storageForN(statesPath);
+//    OpenSim::StatesTrajectory stateTrajectoryForN =
+//            OpenSim::StatesTrajectory::createFromStatesStorage(modelForN,storageForN,false,false,true);
+
+//    int nRows = stateTrajectoryForN.getSize();
+//    std::cout << "Detected " << nRows << " states!" << std::endl;
+
+//    std::vector<double> stiffnesses;
+//    std::vector<double> times;
+//    for(int i=24; i<26; i=i+25){
+//        bool left = false;
+//        std::string modelPathLoop;
+//        if (left){
+//            modelPathLoop = modelPathLeft;
+//        } else {
+//            modelPathLoop = modelPathRight;
+//        }
+
+//        // Load and initialize model
+//        OpenSim::Model model(modelPathLoop);
+//        model.initSystem();
+
+//        // load in state data and create 'StatesTrajectory' object which can be
+//        // indexed to extract the correct state.
+//        OpenSim::Storage storage(statesPath);
+//        OpenSim::StatesTrajectory stateTrajectory =
+//                OpenSim::StatesTrajectory::createFromStatesStorage(model,storage,false,false,true);
+
+//        // The state of this iteration
+//        SimTK::State state = stateTrajectory[i];
+//        double time = state.getTime();
+//        state.setTime(0.0);
+//        // Set the model to the correct state
+//        model.realizeAcceleration(state);
+
+//        // get the CoM location of the pelvis, left foot, and right foot
+//        // expressed in the global frame, state dependend
+//        // TODO: see 'getXYZ' function declaration
+//        SimTK::Vec3 pelvisXYZ = getXYZ(model,state,"pelvis");
+//        SimTK::Vec3 footLXYZ = getXYZ(model,state,"calcn_l");
+//        SimTK::Vec3 footRXYZ = getXYZ(model,state,"calcn_r");
+
+//        // Create forces on the left or right foot in direction of the pelvis
+//        // and in the direction of the soon to be defined PointOnLine constraint
+//        std::string footBodyName;
+//        if(left){
+//            footBodyName = "calcn_l";
+//        } else {
+//            footBodyName = "calcn_r";
+//        }
+//        createForceFile(pelvisXYZ,footLXYZ,footRXYZ,
+//                        left,
+//                        true,       // add perturbation
+//                        forcePath,
+//                        GRFPath,
+//                        state.getTime());
+
+//        // Create control file which is the control sequence of the current
+//        // iteration copied for the duration of 1 second (activation stays the
+//        // same for the simulation duration)
+//        createControlFile(controlsPath,i);
+//        // Create initial state file, just a file with the state of the current
+//        // iteration copied once. Used for the ForwardTool
+//        createStateFile(statesPath,i);
+
+//        // Change the direction of the PointOnLineConstraint to properly align
+//        // with the direction of the foot to pelvis
+//        OpenSim::PointOnLineConstraint& point_on_line_constraint =
+//                model.updComponent<OpenSim::PointOnLineConstraint>("/constraintset/PoL");
+////        std::string bodySetToFootBody = "/bodyset/" + footBodyName;
+////        point_on_line_constraint.setFollowerBodyByName(bodySetToFootBody);
+
+//        // Change line_direction_vec, expressed in pelvis frame
+//        SimTK::Vec3 foot_in_pelvis;
+//        if (left){
+//            foot_in_pelvis = pelvisXYZ - footLXYZ;
+//        } else {
+//            foot_in_pelvis = pelvisXYZ - footRXYZ;
+//        }
+////        SimTK::Vec3 foot_in_pelvis = getXYZinFrame(model,
+////                                                   state,
+////                                                   footBodyName,
+////                                                   "pelvis");
+//        point_on_line_constraint.setLineDirection(foot_in_pelvis);
+//        point_on_line_constraint.set_line_direction_vec(foot_in_pelvis);
+
+//        // Set the default value to the required value from the state in this
+//        // iteration
+//        std::vector<std::string> coordsToLock = createCoordsToLockVector(left);
+//        for(unsigned i=0; i<coordsToLock.size(); i++){
+//            OpenSim::Coordinate& coord =
+//                    model.updComponent<OpenSim::Coordinate>(coordsToLock[i]);
+//            coord.set_default_value(valueFromState(coordsToLock[i],true));
+//            coord.setDefaultValue(valueFromState(coordsToLock[i],true));
+//            coord.set_locked(true);
+//            std::cout << "default: " << coord.getDefaultValue() << std::endl;
+//        }
+//        model.finalizeConnections();
+//        model.finalizeFromProperties();
+
+//        // Loop through all coordinates and print those that are 'free'
+//        std::cout << "\nPRINTING COORDS!" << std::endl;
+//        for (OpenSim::Coordinate coord : model.updComponentList<OpenSim::Coordinate>()){
+//            if (!coord.getLocked(state)){
+//                std::cout << coord.getName() << std::endl;
+//            }
+//        }
+//        std::cout << "END\n" << std::endl;
+
+//        // Add controls
+//        createControlFileXml(controlsPath,i);
+//        OpenSim::ControlSet controlSet(absPath + "/_controls.xml");
+
+//        OpenSim::ControlSetController controller;
+//        controller.setControlSet((OpenSim::ControlSet*)OpenSim::Object::SafeCopy(&controlSet));
+//        model.addController(&controller);
+
+//        // Set the model to the proper state again after all the changes
+//        model.finalizeFromProperties();
+//        model.print(absPath+"/forward_out/model.osim");
+
+//        ///////////////////////////
+//        // CMC FOR STATIC CONFIG //
+//        ///////////////////////////
+//        std::string initialStatePath = absPath + "/state.sto";
+//        performCMC(model,GRFPath,initialStatePath,left,state.getTime());
+
+//        //////////////////
+//        // FORWARD TOOL //
+//        //////////////////
+//        // Create a forward tool and connect the controls file, the initial
+//        // state file, and the external force file
+//        OpenSim::ForwardTool fwdTool;
+//        if (left) {
+//            fwdTool.setExternalLoadsFileName(absPath + "/externalForceLeft.xml");
+//        } else {
+//            fwdTool.setExternalLoadsFileName(absPath + "/externalForceRight.xml");
+//        }
+//        fwdTool.setModel(model);
+//        fwdTool.setResultsDir(absPath + "/forward_out/");
+//        fwdTool.setFinalTime(finalTime);
+//        fwdTool.setStatesFileName(initialStatePath);
+
+//        fwdTool.print("fwd_setup.xml");
+
+//        model.setUseVisualizer(true);
+//        // Run forward simulation
+//        fwdTool.run();
+
+//        //////////////////
+//        // ANALYZE TOOL //
+//        //////////////////
+//        // Run an AnalyzeTool to get the CoM body positions
+//        OpenSim::AnalyzeTool anTool(absPath+"/analyzeTool_setup.xml");
+//        anTool.setName("analyzeTool");
+//        anTool.setModelFilename(absPath+"/forward_out/model.osim");
+//        anTool.setResultsDir(absPath + "/forward_out/");
+//        anTool.setCoordinatesFileName(absPath + "/forward_out/_states.sto");
+//        anTool.run();
+
+//        ///////////////////////////
+//        // STIFFNESS COMPUTATION //
+//        ///////////////////////////
+//        std::string positionFile = absPath + "/forward_out/analyzeTool_BodyKinematics_pos_global.sto";
+//        double x0 = getCalcnPelvisDistance(positionFile,left,finalTime/2);
+//        // and then get it after the additional force
+//        double xf = getCalcnPelvisDistance(positionFile,left,finalTime);
+
+//        // Compute the stiffness
+//        double stiffness = addedForce/(x0 - xf);
+//        std::cout << "x0: " << x0 << " xf: " << xf << std::endl;
+//        std::cout << "stiffness: " << stiffness << std::endl;
+
+//        // Add to vectors for printing to file
+//        stiffnesses.push_back(stiffness);
+//        times.push_back(time);
+
+//        model.disownAllComponents();
+//    }
+//    std::ofstream out(absPath + "/RESULTS.txt");
+//    out << "time\tstiffness\n";
+//    for (unsigned i=0; i<times.size(); i++){
+//        out << times[i] << "\t" << stiffnesses[i] << "\n";
+//    }
+//    out.close();
+//    return 0;
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+<objects>
+                            <PointOnLineConstraint name="PoL">
+                                <isDisabled>false</isDisabled>
+                                <socket_line_body>/bodyset/pelvis</socket_line_body>
+                                <line_direction_vec>0 0 0</line_direction_vec>
+                                <point_on_line>0 0 0</point_on_line>
+                                <socket_follower_body>/bodyset/calcn_l</socket_follower_body>
+                                <point_on_follower>0 0 0</point_on_follower>
+                            </PointOnLineConstraint>
+                        </objects>
+
+
+
+
+
+
+
+
+
+
+void readData(std::string filePath,
+              std::vector<std::string> &headerNames,
+              std::vector<std::vector<double>> &values){
+    // load in state document
+    std::ifstream file{filePath};
+
+    int lineno = 0;
+    std::string line;
+    // ignore header
+    while(std::getline(file,line)){
+        std::cout << line << std::endl;
+        ++lineno;
+
+        if (lineno >= 6){
+            break;
+        }
+    }
+    // gather headernames
+    while(std::getline(file,line)){
+        ++lineno;
+        std::stringstream instream(line);
+        std::string headerName;
+        while(std::getline(instream,headerName,'\t')){
+            headerNames.push_back(headerName);
+        }
+        std::cout << "headerNames.size(): " << headerNames.size() << std::endl;
+        break;
+    }
+    // gather values
+    while(std::getline(file,line)){
+        ++lineno;
+        std::stringstream instream(line);
+        std::string value;
+        std::vector<double> valueVector;
+        while(std::getline(instream,value,'\t')){
+            valueVector.push_back(std::stod(value));
+        }
+        values.push_back(valueVector);
+    }
+    std::cout << "values.size(): " << values.size() << std::endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+//// right leg
+//tmpModelStreamOut << modelStreamIn.rdbuf();
+//std::vector<std::string> addWeldRight, addPoLRight;
+//addWeldRight.push_back("<WeldJoint name=\"weld_r\">\n");
+//addWeldRight.push_back("<socket_parent_frame> /ground </socket_parent_frame>\n");
+//addWeldRight.push_back("<socket_child_frame> /bodyset/calcn_r </socket_child_frame>\n");
+//addWeldRight.push_back("</WeldJoint>\n");
+//writeData(tmpModelStreamIn,tmpModelRightStreamOut,addWeldRight,"<JointSet name=\"jointset\">");
+//tmpModelStreamOut << tmpModelRightStreamIn.rdbuf();
+
+//addPoLRight.push_back("<PointOnLineConstraint name=\"PoL_r\">\n");
+//addPoLRight.push_back("<isDisabled>false</isDisabled>\n");
+//addPoLRight.push_back("<line_body>pelvis</line_body>\n");
+//addPoLRight.push_back("<line_direction> 1 0 0 </line_direction>\n");
+//addPoLRight.push_back("<point_on_line> 0 0 0 </point_on_line>\n");
+//addPoLRight.push_back("<follower_body>calcn_r</follower_body>\n");
+//addPoLRight.push_back("<point_on_follower> 0 0 0 </point_on_follower>\n");
+//addPoLRight.push_back("</PointOnLineConstraint>\n");
+//writeData(tmpModelStreamIn,tmpModelRightStreamOut,addPoLRight,"<ConstraintSet name=\"constraintset\">");
+
+
+
+
+
+
+//addConsLeft.push_back("\t<WeldConstraint name=\"weld_l\">\n");
+//addConsLeft.push_back("\t\t<body_1> ground </body_1>\n");
+//addConsLeft.push_back("\t\t<body_2> calcn_l </body_2>\n");
+//addConsLeft.push_back("\t\t<location_body_1> " +std::to_string(footLXYZ[0])+" "+std::to_string(footLXYZ[1])+" "+std::to_string(footLXYZ[2])+" </location_body_1>\n");
+//addConsLeft.push_back("\t\t<orientation_body_1> 0 0 0 </orientation_body_1>\n");
+//addConsLeft.push_back("\t\t<location_body_2> 0 0 0 </location_body_2>\n");
+//addConsLeft.push_back("\t\t<orientation_body_2> 0 0 0 </orientation_body_2>\n");
+//addConsLeft.push_back("\t</WeldConstraint>\n");
+
+
+//SimTK::Vec3 getPelvisXYZ(std::vector<std::string> &headerNames,
+//                         std::vector<double> &stateValues){
+//    SimTK::Vec3 pelvisXYZ;
+//    for(unsigned pi=0; pi<headerNames.size(); pi++){
+//        if(headerNames[pi].compare("/jointset/ground_pelvis/pelvis_tx/value")){
+//            pelvisXYZ[0] = stateValues[pi];
+//        }
+//        if(headerNames[pi].compare("/jointset/ground_pelvis/pelvis_ty/value")){
+//            pelvisXYZ[1] = stateValues[pi];
+//        }
+//        if(headerNames[pi].compare("/jointset/ground_pelvis/pelvis_tz/value")){
+//            pelvisXYZ[2] = stateValues[pi];
+//        }
+//    }
+//    return pelvisXYZ;
+//}
+
+
+
+//void writeData(std::string originalPath,
+//               std::string newPath,
+//               std::vector<std::string> toAdd,
+//               int lineOfInsert){
+//    std::ifstream originalFile(originalPath);
+//    std::ofstream newFile(newPath);
+
+//    int lineno = 0;
+//    std::string line;
+//    while(std::getline(originalFile,line)){
+//        ++lineno;
+//        newFile << line;
+//        if(lineno==lineOfInsert){
+//            for(unsigned i=0; i<toAdd.size(); i++){
+//                newFile << toAdd[i];
+//            }
+//        }
+//    }
+//    originalFile.close();
+//    newFile.close();
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <fstream>
+#include <OpenSim/OpenSim.h>
+
+void createForceFile(SimTK::Vec3 pelvisCoM,
+                     SimTK::Vec3 footCoM,
+                     std::string forcePath){
+    int sys = system(("rm " + forcePath).c_str());
+    std::ofstream out(forcePath);
+    out << "name appliedForce.mot\n";
+    out << "datacolumns 10\n";
+    out << "datarows 5000\n";
+    out << "range 0.000000 5.000000\n";
+    out << "endheader\n";
+    out << "time\tforce_vx\tforce_vy\tforce_vz\tforce_px\tforce_py\tforce_pz\ttorque_x\ttorque_y\ttorque_z\n";
+
+    double fx, fy, fz, alpha, beta, gamma, F;
+    F = 100.0;
+    SimTK::Vec3 pelvisToFoot = footCoM - pelvisCoM;
+    double pelvisToFootMagnitude = pelvisToFoot.norm();
+
+    alpha = acos(pelvisToFoot[0]/pelvisToFootMagnitude);
+    beta = acos(pelvisToFoot[1]/pelvisToFootMagnitude);
+    gamma = acos(pelvisToFoot[2]/pelvisToFootMagnitude);
+
+    fx = F*pelvisToFoot[0]/pelvisToFootMagnitude;
+    fy = F*pelvisToFoot[1]/pelvisToFootMagnitude;
+    fz = F*pelvisToFoot[2]/pelvisToFootMagnitude;
+
+    for(int i=0; i<5000; i++){
+        out << std::to_string(i/5000.0)+"\t"+std::to_string(fx)+"\t"+
+               std::to_string(fy)+"\t"+std::to_string(fz)+"\t"+
+               "0.000\t0.000\t0.000\t0.000\t0.000\t0.000\n";
+    }
+    out.close();
+}
+
+void writeData(std::string original,
+               std::string replace,
+               std::vector<std::string> toAdd,
+               std::string detect){
+    std::ifstream inStream(original);
+    std::ofstream outStream(replace);
+    int lineno = 0;
+    int flag = 2; // start on 2 so increment can never become 1, only with reset
+    std::string line;
+    while(std::getline(inStream,line)){
+        ++lineno;
+        outStream << line;
+        line.erase(std::remove(line.begin(),line.end(),'\t'),line.end());
+        line.erase(std::remove(line.begin(),line.end(),'\n'),line.end());
+//        std::cout << line << std::endl;
+//        std::cout << detect << std::endl;
+        // if the line is equal to what should be detected
+        if(strncmp(line.c_str(),detect.c_str(),sizeof(detect)-2)==0){
+            flag = 0; // set a flag
+            std::cout << "detected a replacement!" << std::endl;
+        }
+        if(flag==1){ // skipping the <objects> tag
+            for(unsigned i=0; i<toAdd.size(); i++){
+                outStream << toAdd[i];
+            }
+        }
+        flag++;
+        if(flag!=1){
+            flag = 2;
+        }
+    }
+    inStream.close();
+    outStream.close();
+}
+
+SimTK::Vec3 getXYZ(OpenSim::Model& model, SimTK::State& st, std::string bodyName){
+    OpenSim::BodySet bodySet = model.getBodySet();
+    int indBody = bodySet.getIndex(bodyName);
+    const auto& body = bodySet[indBody];
+    SimTK::Vec3 bodyMassCenter = body.getMassCenter();
+    model.updMultibodySystem().realize(st,SimTK::Stage::Position);
+    SimTK::Vec3 bodyXYZ = model.getMatterSubsystem().
+            getMobilizedBody(SimTK::MobilizedBodyIndex(indBody)).
+            findStationLocationInGround(st,bodyMassCenter);
+    std::cout << bodyXYZ[0] <<" "<< bodyXYZ[1] <<" "<< bodyXYZ[2] << std::endl;
+    return bodyXYZ;
+}
+
+
+
+
+
+int main(){
+    std::string filePath = "../leg_stiffness_cpp/data/scaled_states.sto";
+    std::string modelPath = "../leg_stiffness_cpp/data/subject5_model_muscles.osim";
+    std::string newLeftPath = "../leg_stiffness_cpp/data/newLeft.osim";
+    std::string newRightPath = "../leg_stiffness_cpp/data/newRight.osim";
+    std::string tmpPath = "../leg_stiffness_cpp/data/tmpModel.osim";
+    std::string forcePath = "../leg_stiffness_cpp/data/appliedForce.mot";
+
+
+    OpenSim::Model model(modelPath);
+    int sys;
+    std::string command;
+
+    // read data from states .sto file
+    std::vector<std::string> headerNames;
+    std::vector<std::vector<double>> values;
+    readData(filePath,headerNames,values);
+
+    OpenSim::Storage storage(filePath);
+    OpenSim::StatesTrajectory stateTrajectory =
+            OpenSim::StatesTrajectory::createFromStatesStorage(model,storage);
+//    OpenSim::AnalyzeTool tool(model);
+//    tool.setStatesFileName(filePath);
+
+//    SimTK::State st;
+//    tool.loadStatesFromFile(st);
+
+    SimTK::State &stBlank = model.initSystem();
+
+    for(unsigned i=0; i<values.size(); i++){
+        // remove previous files
+        sys = system(("rm " + tmpPath).c_str());
+        sys = system(("rm " + newLeftPath).c_str());
+        sys = system(("rm " + newRightPath).c_str());
+
+        std::vector<double> stateValues = values[i];
+        // fill in state values
+//        for (unsigned ii=1; ii<headerNames.size(); ii++){ // ii=1: skip time
+//            model.setStateVariableValue(stBlank,headerNames[ii],stateValues[ii]);
+//        }
+
+        SimTK::Vec3 pelvisXYZ = getXYZ(model,stBlank,"pelvis");
+        SimTK::Vec3 footLXYZ = getXYZ(model,stBlank,"calcn_l");
+        SimTK::Vec3 footRXYZ = getXYZ(model,stBlank,"calcn_r");
+
+        createForceFile(pelvisXYZ,footLXYZ,forcePath);
+
+        // constrain foot and implement PointOnLineConstraint
+        // at the end you have two extra models, left and right
+        // first create a temporary model that keeps updating
+        std::vector<std::string> addWeldLeft, addPoLLeft, addOffsetLeft;
+
+        // OFFSET FRAME
+        addOffsetLeft.push_back("<components>\n");
+        addOffsetLeft.push_back("   <PhysicalOffsetFrame name=\"left_foot_offset_frame\">\n");
+        addOffsetLeft.push_back("       <FrameGeometry name=\"frame_geometry\">\n");
+        addOffsetLeft.push_back("           <socket_frame>..</socket_frame>\n");
+        addOffsetLeft.push_back("           <scale_factors>0.20000000000000001 0.20000000000000001 0.20000000000000001</scale_factors>\n");
+        addOffsetLeft.push_back("       </FrameGeometry>\n");
+        addOffsetLeft.push_back("       <socket_parent>/ground</socket_parent>\n");
+        addOffsetLeft.push_back("       <translation>"+std::to_string(footLXYZ[0])+" "+std::to_string(footLXYZ[1])+" "+std::to_string(footLXYZ[2])+"</translation>\n");
+        addOffsetLeft.push_back("       <orientation>-0 0 -0</orientation>\n");
+        addOffsetLeft.push_back("   </PhysicalOffsetFrame>\n");
+        addOffsetLeft.push_back("</components>\n");
+        // read from tmpModel and detect final argument, then write all lines to
+        // tmpModelLeft and add addOffsetLeft 2 lines after last argument is
+        // detected in tmpModel
+        writeData(modelPath,newLeftPath,addOffsetLeft,
+                  "<Model name=\"Model_prescaled_adjusted_scaled-scaled\">");
+        std::ofstream tmpOut1(tmpPath);
+        std::ifstream newLeftIn1(newLeftPath);
+        // copy leg file to tmp file
+        tmpOut1 << newLeftIn1.rdbuf();
+        tmpOut1.close(); newLeftIn1.close();
+        // remove leg file
+        sys = system(("rm " + newLeftPath).c_str());
+
+        // WELDJOINT FOOT TO OFFSET FRAME
+        addWeldLeft.push_back("<WeldJoint name=\"weld_l\">\n");
+        addWeldLeft.push_back("     <socket_parent_frame> ../left_foot_offset_frame </socket_parent_frame>\n");
+        addWeldLeft.push_back("     <socket_child_frame> /bodyset/calcn_l </socket_child_frame>\n");
+        addWeldLeft.push_back("</WeldJoint>\n");
+
+        writeData(tmpPath,newLeftPath,addWeldLeft,
+                  "<JointSet name=\"jointset\">");
+        sys = system(("rm " + tmpPath).c_str());
+        std::ofstream tmpOut2(tmpPath);
+        std::ifstream newLeftIn2(newLeftPath);
+        tmpOut2 << newLeftIn2.rdbuf();
+        tmpOut2.close(); newLeftIn2.close();
+        sys = system(("rm " + newLeftPath).c_str());
+
+//        // POINTONLINECONSTRAINT FROM PELVIS TO CONSTRAINED FOOT
+//        addPoLLeft.push_back("<PointOnLineConstraint name=\"PoL_l\">\n");
+//        addPoLLeft.push_back("      <isDisabled>false</isDisabled>\n");
+//        addPoLLeft.push_back("      <line_body>/bodyset/pelvis</line_body>\n");
+//        addPoLLeft.push_back("      <line_direction> 1 0 0 </line_direction>\n");
+//        addPoLLeft.push_back("      <point_on_line> 0 0 0 </point_on_line>\n");
+//        addPoLLeft.push_back("      <follower_body>/bodyset/calcn_l</follower_body>\n");
+//        addPoLLeft.push_back("      <point_on_follower> 0 0 0 </point_on_follower>\n");
+//        addPoLLeft.push_back("</PointOnLineConstraint>\n");
+
+//        writeData(tmpPath,newLeftPath,addPoLLeft,
+//                  "<JointSet name=\"jointset\">");
+//        sys = system(("rm " + tmpPath).c_str());
+//        std::ofstream tmpOut3(tmpPath);
+//        std::ifstream newLeftIn3(newLeftPath);
+//        tmpOut3 << newLeftIn3.rdbuf();
+//        tmpOut3.close(); newLeftIn3.close();
+
+//        // initialize new model
+//        OpenSim::Model modelLeft(newLeftPath);
+//        SimTK::State stLeft = modelLeft.initSystem();
+//        for (unsigned ii=1; ii<headerNames.size(); ii++){ // ii=1: skip time
+//            modelLeft.setStateVariableValue(stLeft,headerNames[ii],stateValues[ii]);
+//        }
+//        modelLeft.setStateVariableValue(stLeft,"/jointset/PoL_l/",0);//??
+
+        break; // for now just do it once
+    }
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    OpenSim::BodySet bodySet = model.getBodySet();
+//    int indBody = bodySet.getIndex(bodyName);
+//    const auto& body = bodySet[indBody];
+//    SimTK::Vec3 bodyMassCenter = body.getMassCenter();
+//    model.updMultibodySystem().realize(st,SimTK::Stage::Position);
+//    SimTK::Vec3 bodyXYZ = model.getMatterSubsystem().
+//            getMobilizedBody(SimTK::MobilizedBodyIndex(indBody)).
+//            findStationLocationInGround(st,bodyMassCenter);
+//    std::cout << bodyXYZ[0] <<" "<< bodyXYZ[1] <<" "<< bodyXYZ[2] << std::endl;
+//    return bodyXYZ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//// Change offset frame location
+//OpenSim::PhysicalOffsetFrame& foot_offset_frame =
+//        model.updComponent<OpenSim::PhysicalOffsetFrame>("/weld_offset_frame");
+//foot_offset_frame.set_translation(pelvisXYZ);
+// Set initial state of point on line constraint
+//        model.setStateVariableValue(state,"/jointset/PoL",0);
+//        model.setStateVariableDerivativeValue(state,"/jointset/PoL",0);
+
+
+//            coord.setDefaultValue(valueFromState(coordsToLock[i],true));
+//            coord.setDefaultSpeedValue(valueFromState(coordsToLock[i],false));
+
+// Finalize and print the model to an osim file
+// dont have to print
+//        model.finalizeConnections();
+//        model.finalizeFromProperties();
+//        model.initSystem();
+//        model.print(relativePath + "subject5_manual_final.osim");
+
+
+//        OpenSim::ForwardTool fwdTool(relativePath + "forwardToolSetup.xml");
+//        fwdTool.setExternalLoadsFileName("externalForceLeft.xml");
+//        fwdTool.run();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<CustomJoint name="calcn_l_to_ground">
+<socket_parent_frame>ground_offset2</socket_parent_frame>
+<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
+<socket_child_frame>calcn_l_offset</socket_child_frame>
+<!--List containing the generalized coordinates (q's) that parameterize this joint.-->
+<coordinates>
+        <Coordinate name="ctg_x">
+                <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                <default_value>-0.0228</default_value>
+                <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                <default_speed_value>0</default_speed_value>
+                <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                <range>-10 10</range>
+                <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                <clamped>false</clamped>
+                <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                <locked>false</locked>
+                <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                <prescribed_function />
+                <!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
+                <prescribed>false</prescribed>
+        </Coordinate>
+        <Coordinate name="ctg_y">
+                <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                <default_value>-0.0506</default_value>
+                <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                <default_speed_value>0</default_speed_value>
+                <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                <range>-10 10</range>
+                <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                <clamped>false</clamped>
+                <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                <locked>false</locked>
+                <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                <prescribed_function />
+                <!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
+                <prescribed>false</prescribed>
+        </Coordinate>
+        <Coordinate name="ctg_z">
+                <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                <default_value>0.0882</default_value>
+                <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                <default_speed_value>0</default_speed_value>
+                <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                <range>-10 10</range>
+                <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                <clamped>false</clamped>
+                <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                <locked>false</locked>
+                <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                <prescribed_function />
+                <!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
+                <prescribed>false</prescribed>
+        </Coordinate>
+</coordinates>
+<frames>
+        <PhysicalOffsetFrame name="ground_offset2">
+                <!--The geometry used to display the axes of this Frame.-->
+                <FrameGeometry name="frame_geometry">
+                        <!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
+                        <socket_frame>..</socket_frame>
+                        <!--Scale factors in X, Y, Z directions respectively.-->
+                        <scale_factors>0.20000000000000001 0.20000000000000001 0.20000000000000001</scale_factors>
+                </FrameGeometry>
+                <!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
+                <socket_parent>/ground</socket_parent>
+                <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
+                <translation>0 0 0</translation>
+                <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
+                <orientation>0 0 0</orientation>
+        </PhysicalOffsetFrame>
+        <PhysicalOffsetFrame name="calcn_l_offset">
+                <!--The geometry used to display the axes of this Frame.-->
+                <FrameGeometry name="frame_geometry">
+                        <!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
+                        <socket_frame>..</socket_frame>
+                        <!--Scale factors in X, Y, Z directions respectively.-->
+                        <scale_factors>0.20000000000000001 0.20000000000000001 0.20000000000000001</scale_factors>
+                </FrameGeometry>
+                <!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
+                <socket_parent>/bodyset/calcn_l</socket_parent>
+                <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
+                <translation>0 0 0</translation>
+                <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
+                <orientation>0 0 0</orientation>
+        </PhysicalOffsetFrame>
+</frames>
+<!--Defines how the child body moves with respect to the parent as a function of the generalized coordinates.-->
+<SpatialTransform>
+        <!--3 Axes for rotations are listed first.-->
+        <TransformAxis name="rotation1">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates></coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>0 0 1</axis>
+                <!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <LinearFunction name="function">
+                        <coefficients>0 0</coefficients>
+                </LinearFunction>
+        </TransformAxis>
+        <TransformAxis name="rotation2">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates></coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>1 0 0</axis>
+                <!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <LinearFunction name="function">
+                        <coefficients>0 0</coefficients>
+                </LinearFunction>
+        </TransformAxis>
+        <TransformAxis name="rotation3">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates></coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>0 1 0</axis>
+                <!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <LinearFunction name="function">
+                        <coefficients>0 0</coefficients>
+                </LinearFunction>
+        </TransformAxis>
+        <!--3 Axes for translations are listed next.-->
+        <TransformAxis name="translation1">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates>ctg_x</coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>1 0 0</axis>
+                <!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <MultiplierFunction name="function">
+                        <function>
+                                <Constant name="function">
+                                        <value>1</value>
+                                </Constant>
+                        </function>
+                </MultiplierFunction>
+        </TransformAxis>
+        <TransformAxis name="translation2">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates>ctg_y</coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>0 1 0</axis>
+                <!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <MultiplierFunction name="function">
+                        <function>
+                                <Constant name="function">
+                                        <value>1</value>
+                                </Constant>
+                        </function>
+                </MultiplierFunction>
+        </TransformAxis>
+        <TransformAxis name="translation3">
+                <!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+                <coordinates>ctg_z</coordinates>
+                <!--Rotation or translation axis for the transform.-->
+                <axis>0 0 1</axis>
+                <!--Transform on of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+                <MultiplierFunction name="function">
+                        <function>
+                                <Constant name="function">
+                                        <value>1</value>
+                                </Constant>
+                        </function>
+                </MultiplierFunction>
+        </TransformAxis>
+</SpatialTransform>
+</CustomJoint>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<FreeJoint name="calcn_l_to_ground">
+        <!--Name of the parent body to which this joint connects its owner body.-->
+        <socket_parent_frame>ground_offset</socket_parent_frame>
+        <socket_child_frame>calcn_l_offset</socket_child_frame>
+        <!--Location of the joint in the parent body specified in the parent reference frame. Default is (0,0,0).-->
+        <location_in_parent>0 0 0</location_in_parent>
+        <!--Orientation of the joint in the parent body specified in the parent reference frame. Euler XYZ body-fixed rotation angles are used to express the orientation. Default is (0,0,0).-->
+        <orientation_in_parent>0 0 0</orientation_in_parent>
+        <!--Location of the joint in the child body specified in the child reference frame. For SIMM models, this vector is always the zero vector (i.e., the body reference frame coincides with the joint). -->
+        <location>0 0 0</location>
+        <!--Orientation of the joint in the owing body specified in the owning body reference frame.  Euler XYZ body-fixed rotation angles are used to express the orientation. -->
+        <orientation>0 0 0</orientation>
+        <!--Set holding the generalized coordinates (q's) that parmeterize this joint.-->
+        <coordinates>
+                <Coordinate name="ctg_rx">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>rotational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>0</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1.57079633 1.57079633</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>true</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+                <Coordinate name="ctg_ry">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>rotational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>0</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1.57079633 1.57079633</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>true</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+                <Coordinate name="ctg_rz">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>rotational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>0</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1.57079633 1.57079633</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>true</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+                <Coordinate name="ctg_tx">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>translational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>-0.8226</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1 1</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>false</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+                <Coordinate name="ctg_ty">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>translational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>0.0363</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1 1</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>false</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+                <Coordinate name="ctg_tz">
+                        <!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
+                        <motion_type>translational</motion_type>
+                        <!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
+                        <default_value>-0.2282</default_value>
+                        <!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
+                        <default_speed_value>0</default_speed_value>
+                        <!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+                        <range>-1 1</range>
+                        <!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+                        <clamped>true</clamped>
+                        <!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
+                        <locked>false</locked>
+                        <!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
+                        <prescribed_function />
+                </Coordinate>
+        </coordinates>
+        <frames>
+                <PhysicalOffsetFrame name="ground_offset">
+                        <!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
+                        <socket_parent>/ground</socket_parent>
+                        <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
+                        <translation>0 0 0</translation>
+                        <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
+                        <orientation>0 0 0</orientation>
+                </PhysicalOffsetFrame>
+                <PhysicalOffsetFrame name="calcn_l_offset">
+                        <!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
+                        <socket_parent>/bodyset/calcn_l</socket_parent>
+                        <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
+                        <translation>0 0 0</translation>
+                        <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
+                        <orientation>0 0 0</orientation>
+                </PhysicalOffsetFrame>
+        </frames>
+
+</FreeJoint>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//// Set the default value and default speed to the required value from
+//// the state in this iteration and then lock coordinates of the pelvis
+//std::vector<std::string> coordsToLock;
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_tilt");
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_list");
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_rotation");
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_tx");
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_ty");
+//coordsToLock.push_back("/jointset/ground_pelvis/pelvis_tz");
+//for(unsigned i=0; i<coordsToLock.size(); i++){
+//    OpenSim::Coordinate& coord = // init coordinate
+//            model.updComponent<OpenSim::Coordinate>(coordsToLock[i]);
+//    coord.setLocked(state,true);
+//    std::cout << "set " << coordsToLock[i] << " to locked" << std::endl;
+//    std::cout << "proof: " << coord.getLocked(state) << std::endl;
+//}
+
+
+
+//        fwdTool.setControlsFileName(absPath + "_controls.sto");
+//        std::cout << "controls: " << fwdTool.getControlsFileName() << std::endl;
+//        if (left) {
+//            fwdTool.setExternalLoadsFileName(absPath + "externalForceLeft.xml");
+//        } else {
+//            fwdTool.setExternalLoadsFileName(absPath + "externalForceRight.xml");
+//        }
+//        fwdTool.setStatesFileName(absPath + "state.sto");
+
+//        fwdTool.print("fwd_setup.xml");
+
+//        model.setUseVisualizer(true);
+//        // Run forward simulation
+//        fwdTool.run();

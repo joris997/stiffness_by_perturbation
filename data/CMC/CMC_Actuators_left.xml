@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<OpenSimDocument Version="40000">
+	<ForceSet name="gait2354_CMC">
+		<objects>
+			<PointActuator name="FX">
+				<!--Name of Body to which this actuator is applied.-->
+				<body>calcn_l</body>
+				<!--Location of application point; in body frame unless point_is_global=true-->
+				<point>0 0 0</point>
+				<!--Interpret point in Ground frame if true; otherwise, body frame.-->
+				<point_is_global>false</point_is_global>
+				<!--Force application direction; in body frame unless force_is_global=true.-->
+				<direction>-1 -0 -0</direction>
+				<!--Interpret direction in Ground frame if true; otherwise, body frame.-->
+				<force_is_global>true</force_is_global>
+				<!--The maximum force produced by this actuator when fully activated.-->
+				<optimal_force>100</optimal_force>
+			</PointActuator>
+			<PointActuator name="FY">
+				<!--Name of Body to which this actuator is applied.-->
+				<body>calcn_l</body>
+				<!--Location of application point; in body frame unless point_is_global=true-->
+				<point>0 0 0</point>
+				<!--Interpret point in Ground frame if true; otherwise, body frame.-->
+				<point_is_global>false</point_is_global>
+				<!--Force application direction; in body frame unless force_is_global=true.-->
+				<direction>-0 -1 -0</direction>
+				<!--Interpret direction in Ground frame if true; otherwise, body frame.-->
+				<force_is_global>true</force_is_global>
+				<!--The maximum force produced by this actuator when fully activated.-->
+				<optimal_force>200</optimal_force>
+			</PointActuator>
+			<PointActuator name="FZ">
+				<!--Name of Body to which this actuator is applied.-->
+				<body>calcn_l</body>
+				<!--Location of application point; in body frame unless point_is_global=true-->
+				<point>0 0 0</point>
+				<!--Interpret point in Ground frame if true; otherwise, body frame.-->
+				<point_is_global>false</point_is_global>
+				<!--Force application direction; in body frame unless force_is_global=true.-->
+				<direction>-0 -0 -1</direction>
+				<!--Interpret direction in Ground frame if true; otherwise, body frame.-->
+				<force_is_global>true</force_is_global>
+				<!--The maximum force produced by this actuator when fully activated.-->
+				<optimal_force>100</optimal_force>
+			</PointActuator>
+			<TorqueActuator name="MX">
+				<!--Name of Body to which the torque actuator is applied.-->
+				<bodyA>calcn_l</bodyA>
+				<!--Name of Body to which the equal and opposite torque is applied.-->
+				<bodyB>ground</bodyB>
+				<!--Interpret axis in Ground frame if true; otherwise, body A's frame.-->
+				<torque_is_global>true</torque_is_global>
+				<!--Fixed direction about which torque is applied, in Ground or body A frame depending on 'torque_is_global' property.-->
+				<axis>-1 -0 -0</axis>
+				<!--The maximum torque produced by this actuator when fully activated.-->
+				<optimal_force>80</optimal_force>
+			</TorqueActuator>
+			<TorqueActuator name="MY">
+				<!--Name of Body to which the torque actuator is applied.-->
+				<bodyA>calcn_l</bodyA>
+				<!--Name of Body to which the equal and opposite torque is applied.-->
+				<bodyB>ground</bodyB>
+				<!--Interpret axis in Ground frame if true; otherwise, body A's frame.-->
+				<torque_is_global>true</torque_is_global>
+				<!--Fixed direction about which torque is applied, in Ground or body A frame depending on 'torque_is_global' property.-->
+				<axis>-0 -1 -0</axis>
+				<!--The maximum torque produced by this actuator when fully activated.-->
+				<optimal_force>80</optimal_force>
+			</TorqueActuator>
+			<TorqueActuator name="MZ">
+				<!--Name of Body to which the torque actuator is applied.-->
+				<bodyA>calcn_l</bodyA>
+				<!--Name of Body to which the equal and opposite torque is applied.-->
+				<bodyB>ground</bodyB>
+				<!--Interpret axis in Ground frame if true; otherwise, body A's frame.-->
+				<torque_is_global>true</torque_is_global>
+				<!--Fixed direction about which torque is applied, in Ground or body A frame depending on 'torque_is_global' property.-->
+				<axis>-0 -0 -1</axis>
+				<!--The maximum torque produced by this actuator when fully activated.-->
+				<optimal_force>80</optimal_force>
+			</TorqueActuator>
+		</objects>
+	</ForceSet>
+</OpenSimDocument>

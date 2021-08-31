@@ -1,0 +1,2 @@
+time	stiffness
+1.25454	25031.7
